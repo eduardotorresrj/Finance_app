@@ -229,9 +229,17 @@ def enrich_response_for_clarity(raw_text: str,
 
 app = Flask(__name__)
 
-# Configurações de produção
+# Configurações de produção - Ajustada a ordem
+def get_database_uri():
+    if 'DATABASE_URL' in os.environ:
+        uri = os.environ.get('DATABASE_URL')
+        if uri.startswith('postgres://'):
+            uri = uri.replace('postgres://', 'postgresql://', 1)
+        return uri
+    return 'sqlite:///finance.db'
+
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'sua_chave_secreta_aqui_mude_em_producao'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///finance.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()  # Usando a função definida acima
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -278,16 +286,6 @@ class AiInteraction(db.Model):
     response = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# Configuração do banco de dados para Render
-def get_database_uri():
-    if 'DATABASE_URL' in os.environ:
-        uri = os.environ.get('DATABASE_URL')
-        if uri.startswith('postgres://'):
-            uri = uri.replace('postgres://', 'postgresql://', 1)
-        return uri
-    return 'sqlite:///finance.db'
-
-app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
 
 def _loads_json_or_default(raw_text: str, default):
     try:
