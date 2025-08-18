@@ -240,6 +240,7 @@ def get_database_uri():
     return 'sqlite:///finance.db'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 def initialize_database():
     with app.app_context():
