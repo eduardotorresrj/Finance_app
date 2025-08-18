@@ -5,4 +5,5 @@ SQLAlchemy==1.4.53
 Werkzeug==2.3.7
 plotly==5.17.0
 python-dotenv==1.0.0 
-guicorn
+gunicorn
+
