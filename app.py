@@ -229,14 +229,27 @@ def enrich_response_for_clarity(raw_text: str,
 
 app = Flask(__name__)
 
+
 # Configurações de produção - Ajustada a ordem
 def get_database_uri():
-    if 'DATABASE_URL' in os.environ:
+    if 'RENDER' in os.environ:  # Verifica se está no Render
         uri = os.environ.get('DATABASE_URL')
-        if uri.startswith('postgres://'):
+        if uri and uri.startswith('postgres://'):
             uri = uri.replace('postgres://', 'postgresql://', 1)
         return uri
     return 'sqlite:///finance.db'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
+
+def initialize_database():
+    with app.app_context():
+        try:
+            db.create_all()
+            print("✅ Tabelas criadas com sucesso!")
+        except Exception as e:
+            print(f"❌ Erro ao criar tabelas: {str(e)}")
+
+initialize_database()
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'sua_chave_secreta_aqui_mude_em_producao'
 app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()  # Usando a função definida acima
@@ -350,6 +363,15 @@ def apply_profile_to_allocations(profile: 'AiProfile', base_amount: float) -> di
         'diversificados': base_amount * 0.10,
         'oportunidades': base_amount * 0.05,
     }
+
+@app.route('/check_db')
+def check_db():
+    try:
+        db.session.execute("SELECT 1")
+        tables = db.engine.table_names()
+        return f"✅ Banco de dados conectado. Tabelas existentes: {tables}"
+    except Exception as e:
+        return f"❌ Erro no banco de dados: {str(e)}"
 
 @login_manager.user_loader
 def load_user(user_id):
