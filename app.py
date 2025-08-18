@@ -227,21 +227,32 @@ def enrich_response_for_clarity(raw_text: str,
     final_parts.extend(suggestions)
     return "\n".join(final_parts)
 
+# Cria as extensões primeiro
+db = SQLAlchemy()
+login_manager = LoginManager()
+
 app = Flask(__name__)
 
-
-# Configurações de produção - Ajustada a ordem
+# Configurações de produção
 def get_database_uri():
-    if 'RENDER' in os.environ:  # Verifica se está no Render
+    if 'RENDER' in os.environ or 'DATABASE_URL' in os.environ:  # Verifica se está no Render
         uri = os.environ.get('DATABASE_URL')
         if uri and uri.startswith('postgres://'):
             uri = uri.replace('postgres://', 'postgresql://', 1)
         return uri
     return 'sqlite:///finance.db'
 
+# Configurações do app
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'sua_chave_secreta_aqui_mude_em_producao'
 app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Inicializa as extensões com o app
+db.init_app(app)
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+# Função para criar tabelas
 def initialize_database():
     with app.app_context():
         try:
@@ -250,16 +261,8 @@ def initialize_database():
         except Exception as e:
             print(f"❌ Erro ao criar tabelas: {str(e)}")
 
+# Chama a inicialização do banco de dados
 initialize_database()
-
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'sua_chave_secreta_aqui_mude_em_producao'
-app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()  # Usando a função definida acima
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
