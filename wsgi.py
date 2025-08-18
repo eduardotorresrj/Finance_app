@@ -4,10 +4,10 @@ WSGI config for Finance App
 """
 
 import os
-from app import create_app
+from app import create_app  # Importa a factory function
 
-# Cria a aplicação Flask
-app = create_app()
+app = create_app()  # Cria a instância da aplicação
 
 if __name__ == "__main__":
-    app.run()
+    app.run()  # Opcional: permite executar com python wsgi.py
+
