@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% block title %}Relatórios - Finance App{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+          <i class="fas fa-chart-pie text-primary"></i> Relatórios
+        </h2>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
+          <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+        </a>
+      </div>
+      
+      <!-- Filtros de Período -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-filter text-primary"></i> Filtros de Período
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="timeframe" class="form-label fw-bold">Período:</label>
+              <input type="text" class="form-control form-control-lg" id="timeframe" value="📅 Mensal" disabled>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="chart_type" class="form-label fw-bold">Tipo de Gráfico:</label>
+              <select class="form-select form-select-lg" id="chart_type" onchange="updateReports()">
+                <option value="both" {% if chart_type == 'both' %}selected{% endif %}>📊 Receitas e Despesas</option>
+                <option value="expenses" {% if chart_type == 'expenses' %}selected{% endif %}>🥧 Apenas Despesas</option>
+                <option value="income" {% if chart_type == 'income' %}selected{% endif %}>📈 Apenas Receitas</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumo Financeiro -->
+      <div class="row mb-4">
+        <div class="col-lg-4 mb-3">
+          <div class="card border-0 shadow-sm bg-success text-white h-100">
+            <div class="card-body text-center py-4">
+              <i class="fas fa-arrow-up fa-2x mb-3"></i>
+              <h5 class="card-title">Total Receitas</h5>
+              <h2 class="mb-0 fw-bold">R$ {{ "%.2f"|format(total_income) }}</h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 mb-3">
+          <div class="card border-0 shadow-sm bg-danger text-white h-100">
+            <div class="card-body text-center py-4">
+              <i class="fas fa-arrow-down fa-2x mb-3"></i>
+              <h5 class="card-title">Total Despesas</h5>
+              <h2 class="mb-0 fw-bold">R$ {{ "%.2f"|format(total_expense) }}</h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 mb-3">
+          <div class="card border-0 shadow-sm {% if balance >= 0 %}bg-primary{% else %}bg-warning{% endif %} text-white h-100">
+            <div class="card-body text-center py-4">
+              <i class="fas fa-wallet fa-2x mb-3"></i>
+              <h5 class="card-title">Saldo</h5>
+              <h2 class="mb-0 fw-bold">R$ {{ "%.2f"|format(balance) }}</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficos -->
+      <div class="row">
+        {% if chart_type == 'income' %}
+          <!-- Apenas Receitas -->
+          <div class="col-12 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                  <i class="fas fa-chart-line"></i> Receitas por Categoria
+                </h5>
+              </div>
+              <div class="card-body">
+                <div id="bar_chart" style="height: 400px; width: 100%;"></div>
+                <script>
+                  var barData = {{ bar_chart|safe }};
+                  Plotly.newPlot('bar_chart', barData.data, barData.layout, {
+                    responsive: true,
+                    displayModeBar: false,
+                    modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
+                  });
+                </script>
+              </div>
+            </div>
+          </div>
+        {% elif chart_type == 'expenses' %}
+          <!-- Apenas Despesas -->
+          <div class="col-12 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                  <i class="fas fa-chart-bar"></i> Despesas por Categoria
+                </h5>
+              </div>
+              <div class="card-body">
+                <div id="bar_chart" style="height: 400px; width: 100%;"></div>
+                <script>
+                  var barData = {{ bar_chart|safe }};
+                  Plotly.newPlot('bar_chart', barData.data, barData.layout, {
+                    responsive: true,
+                    displayModeBar: false,
+                    modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
+                  });
+                </script>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <!-- Receitas e Despesas (ambos) -->
+          <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                  <i class="fas fa-chart-bar"></i> Receitas e Despesas por Categoria
+                </h5>
+              </div>
+              <div class="card-body">
+                <div id="bar_chart" style="height: 400px; width: 100%;"></div>
+                <script>
+                  var barData = {{ bar_chart|safe }};
+                  Plotly.newPlot('bar_chart', barData.data, barData.layout, {
+                    responsive: true,
+                    displayModeBar: false,
+                    modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
+                  });
+                </script>
+              </div>
+            </div>
+          </div>
+          
+
+        {% endif %}
+      </div>
+
+      <!-- Análise de IA Inteligente -->
+      {% if ai_analysis %}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-gradient-success text-white d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-robot"></i> Análise Inteligente - IA Financeira
+          </h5>
+          <span class="badge bg-light text-dark">
+            <i class="fas fa-brain"></i> Machine Learning
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="analysis-content">
+            {% for line in ai_analysis.split('\n') %}
+              {% if line.startswith('🤖') %}
+                <h6 class="text-success fw-bold mt-3 mb-2">{{ line }}</h6>
+              {% elif line.startswith('📈') or line.startswith('🚨') or line.startswith('🎯') or line.startswith('🔮') or line.startswith('🧠') or line.startswith('📋') %}
+                <h6 class="text-success fw-bold mt-3 mb-2">{{ line }}</h6>
+              {% elif line.startswith('✅') %}
+                <p class="text-success mb-1"><i class="fas fa-check-circle"></i> {{ line[2:] }}</p>
+              {% elif line.startswith('❌') %}
+                <p class="text-danger mb-1"><i class="fas fa-times-circle"></i> {{ line[2:] }}</p>
+              {% elif line.startswith('⚠️') %}
+                <p class="text-warning mb-1"><i class="fas fa-exclamation-triangle"></i> {{ line[2:] }}</p>
+              {% elif line.startswith('🚨') %}
+                <p class="text-danger mb-1"><i class="fas fa-exclamation-circle"></i> {{ line[2:] }}</p>
+              {% elif line.startswith('🎯') %}
+                <p class="text-primary mb-1"><i class="fas fa-bullseye"></i> {{ line[2:] }}</p>
+              {% elif line.startswith('🔮') %}
+                <p class="text-info mb-1"><i class="fas fa-crystal-ball"></i> {{ line[2:] }}</p>
+              {% elif line.startswith('•') %}
+                <p class="text-muted mb-1 ms-3"><i class="fas fa-arrow-right"></i> {{ line[1:] }}</p>
+              {% elif line.startswith('🍽️') or line.startswith('🚗') or line.startswith('🎮') or line.startswith('🏠') or line.startswith('📝') %}
+                <p class="text-info mb-1"><i class="fas fa-lightbulb"></i> {{ line[2:] }}</p>
+              {% elif line.startswith('💰') or line.startswith('🔄') or line.startswith('📊') %}
+                <p class="text-primary mb-1"><i class="fas fa-chart-line"></i> {{ line[2:] }}</p>
+              {% elif line.strip() and not line.startswith('1.') and not line.startswith('2.') and not line.startswith('3.') %}
+                <p class="mb-1">{{ line }}</p>
+              {% elif line.startswith('1.') or line.startswith('2.') or line.startswith('3.') %}
+                <p class="mb-1 ms-3">{{ line }}</p>
+              {% else %}
+                <p class="mb-1">{{ line }}</p>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Análise Detalhada -->
+      {% if analysis %}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-line"></i> Análise Detalhada dos Ganhos e Gastos
+          </h5>
+          <a href="{{ url_for('export_analysis') }}" target="_blank" class="btn btn-light btn-sm">
+            <i class="fas fa-download"></i> Exportar Análise
+          </a>
+        </div>
+        <div class="card-body">
+          <div class="analysis-content">
+            {% for line in analysis.split('\n') %}
+              {% if line.startswith('📊') or line.startswith('📈') or line.startswith('💸') or line.startswith('💰') or line.startswith('💡') or line.startswith('🎯') %}
+                <h6 class="text-primary fw-bold mt-3 mb-2">{{ line }}</h6>
+              {% elif line.startswith('✅') %}
+                <p class="text-success mb-1"><i class="fas fa-check-circle"></i> {{ line[2:] }}</p>
+              {% elif line.startswith('❌') %}
+                <p class="text-danger mb-1"><i class="fas fa-times-circle"></i> {{ line[2:] }}</p>
+              {% elif line.startswith('⚠️') %}
+                <p class="text-warning mb-1"><i class="fas fa-exclamation-triangle"></i> {{ line[2:] }}</p>
+              {% elif line.startswith('•') %}
+                <p class="text-muted mb-1 ms-3"><i class="fas fa-arrow-right"></i> {{ line[1:] }}</p>
+              {% elif line.startswith('🍽️') or line.startswith('🚗') or line.startswith('🎮') or line.startswith('🏠') or line.startswith('📝') %}
+                <p class="text-info mb-1"><i class="fas fa-lightbulb"></i> {{ line[2:] }}</p>
+              {% elif line.strip() and not line.startswith('1.') and not line.startswith('2.') and not line.startswith('3.') %}
+                <p class="mb-1">{{ line }}</p>
+              {% elif line.startswith('1.') or line.startswith('2.') or line.startswith('3.') %}
+                <p class="mb-1 ms-3">{{ line }}</p>
+              {% else %}
+                <p class="mb-1">{{ line }}</p>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+function updateReports() {
+  const chartType = document.getElementById('chart_type').value;
+  window.location.href = `{{ url_for('reports') }}?chart_type=${chartType}`;
+}
+</script>
+{% endblock %} 

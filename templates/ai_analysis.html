@@ -1,0 +1,297 @@
+{% extends 'base.html' %}
+{% block title %}IA Financeira - Finance App{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+          <i class="fas fa-robot text-success"></i> IA Financeira Inteligente
+        </h2>
+        <div class="d-flex">
+          <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary me-2">
+            <i class="fas fa-home"></i> Dashboard
+          </a>
+          <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">
+            <i class="fas fa-sign-out-alt"></i> Sair
+          </a>
+        </div>
+      </div>
+
+      <!-- Resumo Financeiro -->
+      <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+              <h5 class="card-title text-success">
+                <i class="fas fa-arrow-up"></i> Receitas
+              </h5>
+              <h3 class="text-success">R$ {{ "%.2f"|format(total_income) }}</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+              <h5 class="card-title text-danger">
+                <i class="fas fa-arrow-down"></i> Despesas
+              </h5>
+              <h3 class="text-danger">R$ {{ "%.2f"|format(total_expense) }}</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+              <h5 class="card-title {% if balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                <i class="fas fa-wallet"></i> Saldo
+              </h5>
+              <h3 class="{% if balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                R$ {{ "%.2f"|format(balance) }}
+              </h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seletor de Análise -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-gradient-success text-white">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-brain"></i> Escolha o Tipo de Análise
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <a href="{{ url_for('ai_analysis_page') }}?type=basic" class="btn btn-outline-primary w-100 py-3">
+                    <i class="fas fa-chart-line fa-2x mb-2"></i><br>
+                    <strong>Análise Básica</strong><br>
+                    <small>Recomendações gerais e dicas</small>
+                  </a>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <a href="{{ url_for('ai_analysis_page') }}?type=advanced" class="btn btn-success w-100 py-3">
+                    <i class="fas fa-brain fa-2x mb-2"></i><br>
+                    <strong>Análise Avançada</strong><br>
+                    <small>Machine Learning + Predições</small>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conselheiro IA -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-gradient-primary text-white">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-comments"></i> Conselheiro IA - Pergunte Qualquer Coisa
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row align-items-end">
+                <div class="col-lg-7 col-md-7 mb-3">
+                  <label class="form-label">Pergunta</label>
+                  <input type="text" id="questionInput" class="form-control form-control-lg" 
+                         placeholder="Ex: Tenho R$ 8.000 para investir por 10 meses, o que fazer?">
+                </div>
+                <div class="col-lg-3 col-md-3 mb-3">
+                  <label class="form-label">Estilo de resposta</label>
+                  <select id="responseMode" class="form-select form-select-lg">
+                    <option value="didatico" selected>Didático</option>
+                    <option value="direto">Direto</option>
+                    <option value="especialista">Especialista</option>
+                    <option value="compacto">Compacto</option>
+                  </select>
+                </div>
+                <div class="col-lg-2 col-md-2 mb-3">
+                  <label class="form-label d-none d-md-block">&nbsp;</label>
+                  <button onclick="askAI()" class="btn btn-primary btn-lg w-100">
+                    <i class="fas fa-paper-plane"></i> Perguntar
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Perguntas Rápidas -->
+              <div class="row mt-3">
+                <div class="col-12">
+                  <h6 class="text-muted mb-2">Perguntas Rápidas:</h6>
+                  <div class="d-flex flex-wrap gap-2">
+                    <button onclick="quickQuestion('Como economizar mais dinheiro?')" class="btn btn-outline-info btn-sm">
+                      💰 Economizar
+                    </button>
+                    <button onclick="quickQuestion('Onde é melhor investir?')" class="btn btn-outline-success btn-sm">
+                      📈 Investir
+                    </button>
+                    <button onclick="quickQuestion('Como sair das dívidas?')" class="btn btn-outline-warning btn-sm">
+                      💳 Dívidas
+                    </button>
+                    <button onclick="quickQuestion('Como aumentar minha renda?')" class="btn btn-outline-primary btn-sm">
+                      💼 Renda
+                    </button>
+                    <button onclick="quickQuestion('Como reduzir gastos?')" class="btn btn-outline-danger btn-sm">
+                      📉 Gastos
+                    </button>
+                    <button onclick="quickQuestion('Planejamento financeiro futuro')" class="btn btn-outline-secondary btn-sm">
+                      🎯 Futuro
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Resposta da IA -->
+              <div id="aiResponse" class="mt-4" style="display: none;">
+                <div class="alert alert-info">
+                  <h6><i class="fas fa-robot"></i> Resposta da IA:</h6>
+                  <div id="responseText"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Análise de IA -->
+      <div class="row">
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-gradient-success text-white d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-brain"></i> Análise Inteligente - IA Financeira
+              </h5>
+              <span class="badge bg-light text-dark">
+                <i class="fas fa-cog"></i> Machine Learning
+              </span>
+            </div>
+            <div class="card-body">
+              <div class="analysis-content">
+                {% for line in ai_analysis.split('\n') %}
+                  {% if line.startswith('🤖') %}
+                    <h6 class="text-success fw-bold mt-3 mb-2">{{ line }}</h6>
+                  {% elif line.startswith('🧠') %}
+                    <h6 class="text-success fw-bold mt-3 mb-2">{{ line }}</h6>
+                  {% elif line.startswith('📈') or line.startswith('🚨') or line.startswith('🎯') or line.startswith('🔮') or line.startswith('📊') or line.startswith('🔄') or line.startswith('📅') or line.startswith('🤖') %}
+                    <h6 class="text-success fw-bold mt-3 mb-2">{{ line }}</h6>
+                  {% elif line.startswith('✅') %}
+                    <p class="text-success mb-1"><i class="fas fa-check-circle"></i> {{ line[2:] }}</p>
+                  {% elif line.startswith('❌') %}
+                    <p class="text-danger mb-1"><i class="fas fa-times-circle"></i> {{ line[2:] }}</p>
+                  {% elif line.startswith('⚠️') %}
+                    <p class="text-warning mb-1"><i class="fas fa-exclamation-triangle"></i> {{ line[2:] }}</p>
+                  {% elif line.startswith('🚨') %}
+                    <p class="text-danger mb-1"><i class="fas fa-exclamation-circle"></i> {{ line[2:] }}</p>
+                  {% elif line.startswith('🎯') %}
+                    <p class="text-primary mb-1"><i class="fas fa-bullseye"></i> {{ line[2:] }}</p>
+                  {% elif line.startswith('🔮') %}
+                    <p class="text-info mb-1"><i class="fas fa-crystal-ball"></i> {{ line[2:] }}</p>
+                  {% elif line.startswith('•') %}
+                    <p class="text-muted mb-1 ms-3"><i class="fas fa-arrow-right"></i> {{ line[1:] }}</p>
+                  {% elif line.startswith('🍽️') or line.startswith('🚗') or line.startswith('🎮') or line.startswith('🏠') or line.startswith('📝') %}
+                    <p class="text-info mb-1"><i class="fas fa-lightbulb"></i> {{ line[2:] }}</p>
+                  {% elif line.startswith('💰') or line.startswith('🔄') or line.startswith('📊') %}
+                    <p class="text-primary mb-1"><i class="fas fa-chart-line"></i> {{ line[2:] }}</p>
+                  {% elif line.startswith('🏆') or line.startswith('🥇') or line.startswith('🥈') or line.startswith('🥉') %}
+                    <p class="text-warning mb-1"><i class="fas fa-trophy"></i> {{ line[2:] }}</p>
+                  {% elif line.startswith('🔴') or line.startswith('🟡') or line.startswith('🟢') %}
+                    <p class="text-danger mb-1"><i class="fas fa-exclamation-circle"></i> {{ line[2:] }}</p>
+                  {% elif line.startswith('=') %}
+                    <hr class="my-3">
+                  {% elif line.strip() and not line.startswith('1.') and not line.startswith('2.') and not line.startswith('3.') %}
+                    <p class="mb-1">{{ line }}</p>
+                  {% elif line.startswith('1.') or line.startswith('2.') or line.startswith('3.') %}
+                    <p class="mb-1 ms-3">{{ line }}</p>
+                  {% else %}
+                    <p class="mb-1">{{ line }}</p>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recursos IA -->
+      <div class="row mt-4">
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-info text-white">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-lightbulb"></i> Recursos da IA Financeira
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <div class="text-center">
+                    <i class="fas fa-chart-line fa-3x text-primary mb-2"></i>
+                    <h6>Análise Preditiva</h6>
+                    <small class="text-muted">Previsões baseadas em machine learning</small>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <div class="text-center">
+                    <i class="fas fa-brain fa-3x text-success mb-2"></i>
+                    <h6>Recomendações Inteligentes</h6>
+                    <small class="text-muted">Sugestões personalizadas para você</small>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <div class="text-center">
+                    <i class="fas fa-robot fa-3x text-info mb-2"></i>
+                    <h6>Conselheiro IA</h6>
+                    <small class="text-muted">Pergunte qualquer coisa sobre finanças</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function askAI() {
+    const question = document.getElementById('questionInput').value;
+    const mode = document.getElementById('responseMode').value;
+    if (!question.trim()) {
+        alert('Por favor, digite uma pergunta!');
+        return;
+    }
+    
+    // Mostrar loading
+    document.getElementById('aiResponse').style.display = 'block';
+    document.getElementById('responseText').innerHTML = '<i class="fas fa-spinner fa-spin"></i> IA pensando...';
+    
+    // Fazer requisição
+    fetch(`/financial_advisor?question=${encodeURIComponent(question)}&mode=${encodeURIComponent(mode)}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('responseText').innerHTML = data.response.replace(/\n/g, '<br>');
+        })
+        .catch(error => {
+            document.getElementById('responseText').innerHTML = 'Erro ao comunicar com a IA. Tente novamente.';
+        });
+}
+
+function quickQuestion(question) {
+    document.getElementById('questionInput').value = question;
+    askAI();
+}
+
+// Permitir Enter para enviar
+document.getElementById('questionInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        askAI();
+    }
+});
+</script>
+{% endblock %} 

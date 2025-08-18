@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Relatórios - Finance App{% endblock %}
+{% block content %}
+<div class="container">
+  <h2>📊 Relatórios</h2>
+  
+  <!-- Resumo -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card bg-success text-white">
+        <div class="card-body text-center">
+          <h5>💰 Total Receitas</h5>
+          <h3>R$ {{ "%.2f"|format(total_income) }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card bg-danger text-white">
+        <div class="card-body text-center">
+          <h5>💸 Total Despesas</h5>
+          <h3>R$ {{ "%.2f"|format(total_expense) }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card {% if balance >= 0 %}bg-primary{% else %}bg-warning{% endif %} text-white">
+        <div class="card-body text-center">
+          <h5>💳 Saldo</h5>
+          <h3>R$ {{ "%.2f"|format(balance) }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráficos -->
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>📈 Receitas e Despesas</h5>
+        </div>
+        <div class="card-body">
+          <div id="bar_chart" style="height: 400px;"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>🥧 Despesas por Categoria</h5>
+        </div>
+        <div class="card-body">
+          <div id="pie_chart" style="height: 400px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Análise -->
+  {% if analysis %}
+  <div class="card mt-4">
+    <div class="card-header">
+      <h5>📝 Análise</h5>
+    </div>
+    <div class="card-body">
+      <pre>{{ analysis }}</pre>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Botão Voltar -->
+  <div class="mt-4">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
+      <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+    </a>
+  </div>
+</div>
+
+<script>
+console.log('=== DEBUG ===');
+console.log('Total Income:', {{ total_income }});
+console.log('Total Expense:', {{ total_expense }});
+console.log('Balance:', {{ balance }});
+
+// Gráfico de Barras
+console.log('Carregando gráfico de barras...');
+var barData = {{ bar_chart|safe }};
+console.log('Bar data:', barData);
+Plotly.newPlot('bar_chart', barData.data, barData.layout);
+
+// Gráfico de Pizza
+console.log('Carregando gráfico de pizza...');
+var pieData = {{ pie_chart|safe }};
+console.log('Pie data:', pieData);
+Plotly.newPlot('pie_chart', pieData.data, pieData.layout);
+</script>
+{% endblock %} 

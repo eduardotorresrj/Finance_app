@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Verificar Código - Finance App{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Verificar Código
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show" role="alert">
+                                    {{ message | safe }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <div class="text-center mb-4">
+                        <i class="fas fa-envelope-open-text fa-3x text-primary mb-3"></i>
+                        <h5>Digite o código de verificação</h5>
+                        <p class="text-muted">
+                            Enviamos um código de 6 dígitos para seu email.<br>
+                            Digite o código abaixo para continuar.
+                        </p>
+                    </div>
+                    
+                    <form method="POST" id="codeForm">
+                        <div class="mb-4">
+                            <label for="verification_code" class="form-label">
+                                <i class="fas fa-key me-2"></i>Código de Verificação
+                            </label>
+                            <input type="text" 
+                                   class="form-control form-control-lg text-center" 
+                                   id="verification_code" 
+                                   name="verification_code" 
+                                   required 
+                                   maxlength="6"
+                                   pattern="[0-9]{6}"
+                                   placeholder="000000"
+                                   style="font-size: 1.5rem; letter-spacing: 0.5rem; font-weight: bold;">
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Digite os 6 dígitos do código enviado por email
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-check-circle me-2"></i>Verificar Código
+                            </button>
+                            <a href="{{ url_for('forgot_password') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Voltar
+                            </a>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-4">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Como funciona:</h6>
+                            <ul class="mb-0">
+                                <li>Verifique sua caixa de entrada (e spam)</li>
+                                <li>Digite o código de 6 dígitos exatamente como recebido</li>
+                                <li>O código é válido por 15 minutos</li>
+                                <li>Após a verificação, você poderá redefinir sua senha</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-focus no campo de código
+document.getElementById('verification_code').focus();
+
+// Permitir apenas números
+document.getElementById('verification_code').addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9]/g, '');
+    
+    // Auto-submit quando completar 6 dígitos
+    if (this.value.length === 6) {
+        document.getElementById('codeForm').submit();
+    }
+});
+
+// Formatação visual do código
+document.getElementById('verification_code').addEventListener('keyup', function() {
+    if (this.value.length === 6) {
+        this.classList.add('is-valid');
+        this.classList.remove('is-invalid');
+    } else if (this.value.length > 0) {
+        this.classList.add('is-invalid');
+        this.classList.remove('is-valid');
+    } else {
+        this.classList.remove('is-valid', 'is-invalid');
+    }
+});
+</script>
+
+<style>
+.form-control-lg {
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.form-control-lg:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.form-control-lg.is-valid {
+    border-color: #198754;
+    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+.form-control-lg.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+</style>
+{% endblock %} 
