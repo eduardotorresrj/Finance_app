@@ -3,15 +3,11 @@
 WSGI config for Finance App
 """
 
-import sys
 import os
+from app import create_app
 
-# Add the project directory to the Python path
-path = os.path.dirname(os.path.abspath(__file__))
-if path not in sys.path:
-    sys.path.append(path)
-
-from app import app
+# Cria a aplicação Flask
+app = create_app()
 
 if __name__ == "__main__":
-    app.run() 
+    app.run()
