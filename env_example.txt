@@ -1,0 +1,15 @@
+# Configurações do Finance App
+# Copie este arquivo para .env e configure suas variáveis
+
+# Chave secreta para sessões (mude em produção!)
+SECRET_KEY=sua_chave_secreta_muito_segura_aqui
+
+# URL do banco de dados
+DATABASE_URL=sqlite:///finance.db
+
+# Modo debug (True para desenvolvimento, False para produção)
+DEBUG=False
+
+# Configurações adicionais
+FLASK_ENV=production
+FLASK_DEBUG=False 
