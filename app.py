@@ -278,6 +278,17 @@ class AiInteraction(db.Model):
     response = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+# Configuração do banco de dados para Render
+def get_database_uri():
+    if 'DATABASE_URL' in os.environ:
+        uri = os.environ.get('DATABASE_URL')
+        if uri.startswith('postgres://'):
+            uri = uri.replace('postgres://', 'postgresql://', 1)
+        return uri
+    return 'sqlite:///finance.db'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
+
 def _loads_json_or_default(raw_text: str, default):
     try:
         return json.loads(raw_text) if raw_text else default
