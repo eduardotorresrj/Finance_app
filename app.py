@@ -24,7 +24,8 @@ def create_app():
             if database_url.startswith('postgres://'):
                 database_url = database_url.replace('postgres://', 'postgresql://', 1)
             return database_url
-        return 'sqlite:///instance/finance.db'  # garante que fique na pasta instance
+        # força o SQLite dentro da pasta instance (persistência melhor no Render)
+        return 'sqlite:///instance/finance.db'
     
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key')
     app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
@@ -33,7 +34,19 @@ def create_app():
     # Inicializa extensões
     db.init_app(app)
     login_manager.init_app(app)
-    login_manager.login_view = 'auth.login'  # se usar blueprint 'auth'
+    
+    # Detecta automaticamente se a rota de login está em um blueprint
+    try:
+        from flask import url_for
+        with app.app_context():
+            # Testa se existe rota 'auth.login'
+            url_for('auth.login')
+            login_manager.login_view = 'auth.login'
+            print("🔑 login_view definido como 'auth.login'")
+    except Exception:
+        # fallback para rota simples 'login'
+        login_manager.login_view = 'login'
+        print("🔑 login_view definido como 'login'")
     
     # Configura user_loader
     @login_manager.user_loader
@@ -48,6 +61,7 @@ def create_app():
     return app
 
 app = create_app()
+
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
