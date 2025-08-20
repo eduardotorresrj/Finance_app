@@ -10,6 +10,95 @@ import plotly.graph_objs as go
 import plotly.utils
 import os
 
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=True)
+
+class Transaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    type = db.Column(db.String(10))  # 'income' ou 'expense'
+    category = db.Column(db.String(50))
+    amount = db.Column(db.Float)
+    description = db.Column(db.String(200))
+    date = db.Column(db.Date)
+    due_date = db.Column(db.Date, nullable=True)
+    image_path = db.Column(db.String(200), nullable=True)
+
+# ======== IA Learning: Perfis e Interações ========
+class AiProfile(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    risk_profile = db.Column(db.String(20), default='moderado')  # conservador | moderado | arrojado
+    savings_target_pct = db.Column(db.Integer, default=20)  # meta de poupança
+    emergency_months_target = db.Column(db.Integer, default=3)
+    avoided_categories_json = db.Column(db.Text, default='[]')  # categorias que o usuário não quer cortar
+    focus_counters_json = db.Column(db.Text, default='{}')      # contadores por intenção
+    total_feedback = db.Column(db.Integer, default=0)
+    avg_helpfulness = db.Column(db.Float, default=0.0)
+    interaction_count = db.Column(db.Integer, default=0)
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow)
+
+class AiInteraction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    question = db.Column(db.Text, nullable=False)
+    intents_json = db.Column(db.Text, default='[]')
+    response = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# Cria as extensões primeiro
+db = SQLAlchemy()
+login_manager = LoginManager()
+
+# Configuração do banco de dados
+def get_database_uri():
+    # Verifica se DATABASE_URL existe (funciona tanto no Render quanto localmente)
+    database_url = os.environ.get('DATABASE_URL')
+    
+    if database_url:
+        # Corrige a URL do PostgreSQL se necessário
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        return database_url
+    else:
+        # Fallback para SQLite (desenvolvimento)
+        return 'sqlite:///finance.db'
+
+# Factory function para criar a aplicação
+def create_app():
+    app = Flask(__name__)
+    
+    # Configurações obrigatórias
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
+    app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    # Inicializa as extensões com o app
+    db.init_app(app)
+    login_manager.init_app(app)
+    login_manager.login_view = 'login'
+    
+    
+    # Cria tabelas dentro do contexto da aplicação
+    with app.app_context():
+        try:
+            db.create_all()
+            print("✅ Tabelas criadas com sucesso!")
+        except Exception as e:
+            print(f"❌ Erro ao criar tabelas: {str(e)}")
+    
+    return app
+
+# Cria a aplicação
+app = create_app()
+
+
+
+
 def format_currency(value):
     """Formata valor monetário com vírgulas como separadores de milhares"""
     if value is None:
@@ -227,90 +316,6 @@ def enrich_response_for_clarity(raw_text: str,
     final_parts.extend(suggestions)
     return "\n".join(final_parts)
 
-# Cria as extensões primeiro
-db = SQLAlchemy()
-login_manager = LoginManager()
-
-# Configuração do banco de dados
-def get_database_uri():
-    # Verifica se DATABASE_URL existe (funciona tanto no Render quanto localmente)
-    database_url = os.environ.get('DATABASE_URL')
-    
-    if database_url:
-        # Corrige a URL do PostgreSQL se necessário
-        if database_url.startswith('postgres://'):
-            database_url = database_url.replace('postgres://', 'postgresql://', 1)
-        return database_url
-    else:
-        # Fallback para SQLite (desenvolvimento)
-        return 'sqlite:///finance.db'
-
-# Factory function para criar a aplicação
-def create_app():
-    app = Flask(__name__)
-    
-    # Configurações obrigatórias
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
-    app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
-    # Inicializa as extensões com o app
-    db.init_app(app)
-    login_manager.init_app(app)
-    login_manager.login_view = 'login'
-    
-    
-    # Cria tabelas dentro do contexto da aplicação
-    with app.app_context():
-        try:
-            db.create_all()
-            print("✅ Tabelas criadas com sucesso!")
-        except Exception as e:
-            print(f"❌ Erro ao criar tabelas: {str(e)}")
-    
-    return app
-
-# Cria a aplicação
-app = create_app()
-
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=True)
-
-class Transaction(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    type = db.Column(db.String(10))  # 'income' ou 'expense'
-    category = db.Column(db.String(50))
-    amount = db.Column(db.Float)
-    description = db.Column(db.String(200))
-    date = db.Column(db.Date)
-    due_date = db.Column(db.Date, nullable=True)
-    image_path = db.Column(db.String(200), nullable=True)
-
-# ======== IA Learning: Perfis e Interações ========
-class AiProfile(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
-    risk_profile = db.Column(db.String(20), default='moderado')  # conservador | moderado | arrojado
-    savings_target_pct = db.Column(db.Integer, default=20)  # meta de poupança
-    emergency_months_target = db.Column(db.Integer, default=3)
-    avoided_categories_json = db.Column(db.Text, default='[]')  # categorias que o usuário não quer cortar
-    focus_counters_json = db.Column(db.Text, default='{}')      # contadores por intenção
-    total_feedback = db.Column(db.Integer, default=0)
-    avg_helpfulness = db.Column(db.Float, default=0.0)
-    interaction_count = db.Column(db.Integer, default=0)
-    last_updated = db.Column(db.DateTime, default=datetime.utcnow)
-
-class AiInteraction(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    question = db.Column(db.Text, nullable=False)
-    intents_json = db.Column(db.Text, default='[]')
-    response = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 def _loads_json_or_default(raw_text: str, default):
