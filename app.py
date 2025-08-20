@@ -241,9 +241,9 @@ def get_database_uri():
             uri = uri.replace('postgres://', 'postgresql://', 1)
         return uri
     return 'sqlite:///finance.db'
-
-# Configurações do app
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'sua_chave_secreta_aqui_mude_em_producao'
+    
+# Configurações obrigatórias
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -251,6 +251,19 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+# Cria tabelas dentro do contexto da aplicação
+    with app.app_context():
+        try:
+            db.create_all()
+            print("✅ Tabelas criadas com sucesso!")
+        except Exception as e:
+            print(f"❌ Erro ao criar tabelas: {str(e)}")
+    
+    return app
+
+# Cria a aplicação
+app = create_app()
 
 # Função para criar tabelas
 def initialize_database():
