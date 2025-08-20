@@ -24,7 +24,7 @@ def create_app():
             if database_url.startswith('postgres://'):
                 database_url = database_url.replace('postgres://', 'postgresql://', 1)
             return database_url
-        return 'sqlite:///finance.db'
+        return 'sqlite:///instance/finance.db'  # garante que fique na pasta instance
     
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key')
     app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
@@ -33,9 +33,7 @@ def create_app():
     # Inicializa extensões
     db.init_app(app)
     login_manager.init_app(app)
-    login_manager.login_view = 'login'
-    
-  
+    login_manager.login_view = 'auth.login'  # se usar blueprint 'auth'
     
     # Configura user_loader
     @login_manager.user_loader
