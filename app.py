@@ -35,8 +35,7 @@ def create_app():
     login_manager.init_app(app)
     login_manager.login_view = 'login'
     
-    # Importa modelos DEPOIS de inicializar db
-    from models import User
+  
     
     # Configura user_loader
     @login_manager.user_loader
@@ -47,10 +46,6 @@ def create_app():
     with app.app_context():
         db.create_all()
         print("✅ Tabelas criadas com sucesso!")
-    
-    # Importa e registra rotas
-    from routes import bp
-    app.register_blueprint(bp)
     
     return app
 
