@@ -10,6 +10,52 @@ import plotly.graph_objs as go
 import plotly.utils
 import os
 
+# Inicializa extensões
+db = SQLAlchemy()
+login_manager = LoginManager()
+
+def create_app():
+    app = Flask(__name__)
+    
+    # Configuração do banco
+    def get_database_uri():
+        database_url = os.environ.get('DATABASE_URL', '')
+        if database_url:
+            if database_url.startswith('postgres://'):
+                database_url = database_url.replace('postgres://', 'postgresql://', 1)
+            return database_url
+        return 'sqlite:///finance.db'
+    
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key')
+    app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    # Inicializa extensões
+    db.init_app(app)
+    login_manager.init_app(app)
+    login_manager.login_view = 'login'
+    
+    # Importa modelos DEPOIS de inicializar db
+    from models import User
+    
+    # Configura user_loader
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+    
+    # Cria tabelas
+    with app.app_context():
+        db.create_all()
+        print("✅ Tabelas criadas com sucesso!")
+    
+    # Importa e registra rotas
+    from routes import bp
+    app.register_blueprint(bp)
+    
+    return app
+
+app = create_app()
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -48,54 +94,6 @@ class AiInteraction(db.Model):
     intents_json = db.Column(db.Text, default='[]')
     response = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-
-# Cria as extensões primeiro
-db = SQLAlchemy()
-login_manager = LoginManager()
-
-# Configuração do banco de dados
-def get_database_uri():
-    # Verifica se DATABASE_URL existe (funciona tanto no Render quanto localmente)
-    database_url = os.environ.get('DATABASE_URL')
-    
-    if database_url:
-        # Corrige a URL do PostgreSQL se necessário
-        if database_url.startswith('postgres://'):
-            database_url = database_url.replace('postgres://', 'postgresql://', 1)
-        return database_url
-    else:
-        # Fallback para SQLite (desenvolvimento)
-        return 'sqlite:///finance.db'
-
-# Factory function para criar a aplicação
-def create_app():
-    app = Flask(__name__)
-    
-    # Configurações obrigatórias
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
-    app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
-    # Inicializa as extensões com o app
-    db.init_app(app)
-    login_manager.init_app(app)
-    login_manager.login_view = 'login'
-    
-    
-    # Cria tabelas dentro do contexto da aplicação
-    with app.app_context():
-        try:
-            db.create_all()
-            print("✅ Tabelas criadas com sucesso!")
-        except Exception as e:
-            print(f"❌ Erro ao criar tabelas: {str(e)}")
-    
-    return app
-
-# Cria a aplicação
-app = create_app()
-
 
 
 
