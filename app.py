@@ -231,28 +231,36 @@ def enrich_response_for_clarity(raw_text: str,
 db = SQLAlchemy()
 login_manager = LoginManager()
 
-app = Flask(__name__)
-
-# Configurações de produção
+# Configuração do banco de dados
 def get_database_uri():
-    if 'RENDER' in os.environ or 'DATABASE_URL' in os.environ:  # Verifica se está no Render
-        uri = os.environ.get('DATABASE_URL')
-        if uri and uri.startswith('postgres://'):
-            uri = uri.replace('postgres://', 'postgresql://', 1)
-        return uri
-    return 'sqlite:///finance.db'
+    # Verifica se DATABASE_URL existe (funciona tanto no Render quanto localmente)
+    database_url = os.environ.get('DATABASE_URL')
     
-# Configurações obrigatórias
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
-app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    if database_url:
+        # Corrige a URL do PostgreSQL se necessário
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        return database_url
+    else:
+        # Fallback para SQLite (desenvolvimento)
+        return 'sqlite:///finance.db'
 
-# Inicializa as extensões com o app
-db.init_app(app)
-login_manager.init_app(app)
-login_manager.login_view = 'login'
-
-# Cria tabelas dentro do contexto da aplicação
+# Factory function para criar a aplicação
+def create_app():
+    app = Flask(__name__)
+    
+    # Configurações obrigatórias
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
+    app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    # Inicializa as extensões com o app
+    db.init_app(app)
+    login_manager.init_app(app)
+    login_manager.login_view = 'login'
+    
+    
+    # Cria tabelas dentro do contexto da aplicação
     with app.app_context():
         try:
             db.create_all()
@@ -264,18 +272,6 @@ login_manager.login_view = 'login'
 
 # Cria a aplicação
 app = create_app()
-
-# Função para criar tabelas
-def initialize_database():
-    with app.app_context():
-        try:
-            db.create_all()
-            print("✅ Tabelas criadas com sucesso!")
-        except Exception as e:
-            print(f"❌ Erro ao criar tabelas: {str(e)}")
-
-# Chama a inicialização do banco de dados
-initialize_database()
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
