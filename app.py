@@ -229,27 +229,31 @@ def enrich_response_for_clarity(raw_text: str,
 
 app = Flask(__name__)
 
-# Configurações de produção CORRIGIDAS
+# Configuração robusta para Render
 def get_database_uri():
-    # Pega a URL do ambiente (Render fornece automaticamente)
-    database_url = os.environ.get('DATABASE_URL')
+    # Tenta várias possibilidades de nome de variável
+    database_url = (
+        os.environ.get('DATABASE_URL') or
+        os.environ.get('RENDER_DATABASE_URL') or
+        os.environ.get('POSTGRESQL_URL')
+    )
     
     if database_url:
-        # CORREÇÃO ESSENCIAL: Render fornece "postgres://" mas SQLAlchemy precisa de "postgresql://"
+        # Correção ESSENCIAL para formato do Render
         if database_url.startswith('postgres://'):
             database_url = database_url.replace('postgres://', 'postgresql://', 1)
-        print("✅ Usando PostgreSQL no Render")
+        print(f"✅ Usando PostgreSQL: {database_url[:50]}...")
         return database_url
-    else:
-        # Fallback para desenvolvimento local - NUNCA use a URL com senha no código!
-        print("⚠️  Usando SQLite local (modo desenvolvimento)")
-        return 'sqlite:///instance/finance.db'
+    
+    # Se não encontrar, ERRO (no Render sempre deve ter)
+    print("❌ DATABASE_URL não encontrada!")
+    return 'sqlite:///instance/finance.db'  # Fallback apenas para debug
 
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'sua_chave_secreta_aqui_mude_em_producao'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'dev-key-fallback'
 app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Configuração SSL para PostgreSQL no Render
+# SSL para PostgreSQL no Render
 if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql://'):
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'connect_args': {
@@ -263,16 +267,15 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# Rota para testar a conexão com o banco
-@app.route('/debug/db')
-def debug_db():
-    try:
-        from sqlalchemy import text
-        result = db.session.execute(text('SELECT version()'))
-        db_version = result.scalar()
-        return f'✅ PostgreSQL conectado! Versão: {db_version}'
-    except Exception as e:
-        return f'❌ Erro de conexão: {str(e)}'
+# Rota para debug
+@app.route('/debug')
+def debug_info():
+    info = {
+        'database_uri': app.config['SQLALCHEMY_DATABASE_URI'][:100] + '...' if app.config['SQLALCHEMY_DATABASE_URI'] else 'None',
+        'has_database_url': 'DATABASE_URL' in os.environ,
+        'all_env_vars': {k: v for k, v in os.environ.items() if 'DATABASE' in k or 'SECRET' in k}
+    }
+    return info
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
