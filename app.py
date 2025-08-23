@@ -295,14 +295,21 @@ def drop_create_tables():
     except Exception as e:
         return f"❌ Erro: {str(e)}"
 
-@app.before_first_request
-def create_tables_on_start():
-    try:
-        print("🚀 Iniciando criação de tabelas...")
-        db.create_all()
-        print("🎉 Tabelas criadas com sucesso!")
-    except Exception as e:
-        print(f"💥 Erro ao criar tabelas: {e}")
+first_request = True
+
+@app.before_request
+def create_tables_on_first_request():
+    global first_request
+    if first_request:
+        first_request = False
+        try:
+            print("🚀 Criando tabelas no primeiro request...")
+            db.create_all()
+            print("🎉 Tabelas criadas!")
+        except Exception as e:
+            print(f"💥 Erro: {e}")
+
+
         
 # Rota para debug
 @app.route('/debug')
