@@ -229,15 +229,50 @@ def enrich_response_for_clarity(raw_text: str,
 
 app = Flask(__name__)
 
-# Configurações de produção
+# Configurações de produção CORRIGIDAS
+def get_database_uri():
+    # Pega a URL do ambiente (Render fornece automaticamente)
+    database_url = os.environ.get('DATABASE_URL')
+    
+    if database_url:
+        # CORREÇÃO ESSENCIAL: Render fornece "postgres://" mas SQLAlchemy precisa de "postgresql://"
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        print("✅ Usando PostgreSQL no Render")
+        return database_url
+    else:
+        # Fallback para desenvolvimento local - NUNCA use a URL com senha no código!
+        print("⚠️  Usando SQLite local (modo desenvolvimento)")
+        return 'sqlite:///instance/finance.db'
+
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'sua_chave_secreta_aqui_mude_em_producao'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///finance.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Configuração SSL para PostgreSQL no Render
+if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql://'):
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'connect_args': {
+            'sslmode': 'require',
+            'sslrootcert': '/etc/ssl/certs/ca-certificates.crt'
+        }
+    }
 
 db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+# Rota para testar a conexão com o banco
+@app.route('/debug/db')
+def debug_db():
+    try:
+        from sqlalchemy import text
+        result = db.session.execute(text('SELECT version()'))
+        db_version = result.scalar()
+        return f'✅ PostgreSQL conectado! Versão: {db_version}'
+    except Exception as e:
+        return f'❌ Erro de conexão: {str(e)}'
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
