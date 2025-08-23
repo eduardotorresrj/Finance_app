@@ -278,22 +278,24 @@ with app.app_context():
         import traceback
         traceback.print_exc()
 
-@app.route('/create-tables')
-def create_tables():
+# ⚠️ RENOMEIE para evitar conflito de endpoint
+@app.route('/admin/create-tables')
+def admin_create_tables():
     try:
         db.create_all()
         return "✅ Tabelas criadas com sucesso!"
     except Exception as e:
         return f"❌ Erro: {str(e)}"
 
-@app.route('/drop-create-tables')
-def drop_create_tables():
+@app.route('/admin/drop-create-tables')
+def admin_drop_create_tables():
     try:
         db.drop_all()
         db.create_all()
         return "✅ Tabelas recriadas com sucesso!"
     except Exception as e:
         return f"❌ Erro: {str(e)}"
+
 
         
 # Rota para debug
