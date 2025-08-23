@@ -15,6 +15,47 @@ import os
 db = SQLAlchemy()
 login_manager = LoginManager()
 
+# ======== MODELOS DE BANCO DE DADOS ========
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=True)
+
+class Transaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    type = db.Column(db.String(10))  # 'income' ou 'expense'
+    category = db.Column(db.String(50))
+    amount = db.Column(db.Float)
+    description = db.Column(db.String(200))
+    date = db.Column(db.Date)
+    due_date = db.Column(db.Date, nullable=True)
+    image_path = db.Column(db.String(200), nullable=True)
+
+# ======== IA Learning: Perfis e Interações ========
+class AiProfile(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    risk_profile = db.Column(db.String(20), default='moderado')
+    savings_target_pct = db.Column(db.Integer, default=20)
+    emergency_months_target = db.Column(db.Integer, default=3)
+    avoided_categories_json = db.Column(db.Text, default='[]')
+    focus_counters_json = db.Column(db.Text, default='{}')
+    total_feedback = db.Column(db.Integer, default=0)
+    avg_helpfulness = db.Column(db.Float, default=0.0)
+    interaction_count = db.Column(db.Integer, default=0)
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow)
+
+class AiInteraction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    question = db.Column(db.Text, nullable=False)
+    intents_json = db.Column(db.Text, default='[]')
+    response = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# ======== CONFIGURAÇÃO DO APP ========
 def create_app():
     app = Flask(__name__)
 
@@ -37,12 +78,7 @@ def create_app():
     login_manager.init_app(app)
 
     # Define rota de login
-    try:
-        with app.app_context():
-            url_for("auth.login")
-            login_manager.login_view = "auth.login"
-    except Exception:
-        login_manager.login_view = "login"
+    login_manager.login_view = 'login'
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -50,53 +86,16 @@ def create_app():
 
     # Cria tabelas se não existirem
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+            print("✅ Tabelas criadas/verificadas com sucesso!")
+        except Exception as e:
+            print(f"❌ Erro ao criar tabelas: {e}")
+            # Não levante exceção aqui para que o app possa iniciar
 
     return app
 
 app = create_app()
-
-
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=True)
-
-class Transaction(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    type = db.Column(db.String(10))  # 'income' ou 'expense'
-    category = db.Column(db.String(50))
-    amount = db.Column(db.Float)
-    description = db.Column(db.String(200))
-    date = db.Column(db.Date)
-    due_date = db.Column(db.Date, nullable=True)
-    image_path = db.Column(db.String(200), nullable=True)
-
-# ======== IA Learning: Perfis e Interações ========
-class AiProfile(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
-    risk_profile = db.Column(db.String(20), default='moderado')  # conservador | moderado | arrojado
-    savings_target_pct = db.Column(db.Integer, default=20)  # meta de poupança
-    emergency_months_target = db.Column(db.Integer, default=3)
-    avoided_categories_json = db.Column(db.Text, default='[]')  # categorias que o usuário não quer cortar
-    focus_counters_json = db.Column(db.Text, default='{}')      # contadores por intenção
-    total_feedback = db.Column(db.Integer, default=0)
-    avg_helpfulness = db.Column(db.Float, default=0.0)
-    interaction_count = db.Column(db.Integer, default=0)
-    last_updated = db.Column(db.DateTime, default=datetime.utcnow)
-
-class AiInteraction(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    question = db.Column(db.Text, nullable=False)
-    intents_json = db.Column(db.Text, default='[]')
-    response = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-
 
 def format_currency(value):
     """Formata valor monetário com vírgulas como separadores de milhares"""
@@ -384,11 +383,32 @@ def apply_profile_to_allocations(profile: 'AiProfile', base_amount: float) -> di
 @app.route('/check_db')
 def check_db():
     try:
-        db.session.execute("SELECT 1")
-        tables = db.engine.table_names()
-        return f"✅ Banco de dados conectado. Tabelas existentes: {tables}"
+        # Tenta conectar e listar tabelas
+        with app.app_context():
+            db.session.execute("SELECT 1")
+            # Para PostgreSQL, use information_schema
+            result = db.session.execute("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public'
+            """)
+            tables = [row[0] for row in result]
+            
+            # Conta usuários para verificar se está funcionando
+            user_count = User.query.count()
+            
+            return jsonify({
+                "status": "✅ Banco de dados conectado",
+                "tables": tables,
+                "user_count": user_count,
+                "database_url": app.config['SQLALCHEMY_DATABASE_URI'][:50] + "..."  # Mostra parte da URL
+            })
     except Exception as e:
-        return f"❌ Erro no banco de dados: {str(e)}"
+        return jsonify({
+            "status": "❌ Erro no banco de dados",
+            "error": str(e),
+            "database_url": app.config.get('SQLALCHEMY_DATABASE_URI', 'Não configurado')[:50] + "..."
+        }), 500
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -3815,6 +3835,12 @@ A IA está pronta para entender e ajudar com qualquer aspecto das suas finanças
     return jsonify({'response': response})
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=False, host='0.0.0.0', port=5000) 
+    try:
+        with app.app_context():
+            db.create_all()
+            print("✅ Tabelas criadas/verificadas com sucesso!")
+    except Exception as e:
+        print(f"⚠️ Aviso: Erro ao criar tabelas: {e}")
+        print("O aplicativo continuará a executar, mas algumas funcionalidades podem não funcionar.")
+    
+    app.run(debug=False, host='0.0.0.0', port=5000)
