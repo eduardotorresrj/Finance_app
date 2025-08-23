@@ -260,14 +260,14 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# ⚠️ ADICIONE ESTE BLOCO PARA CRIAR AS TABELAS
+# ⚠️ FORÇAR CRIAÇÃO DAS TABELAS NO STARTUP
 with app.app_context():
     try:
-        print("🔄 Tentando criar tabelas...")
+        print("🔄 Criando tabelas...")
         db.create_all()
         print("✅ Tabelas criadas com sucesso!")
         
-        # Verifica se as tabelas foram criadas
+        # Verificar se as tabelas foram criadas
         from sqlalchemy import inspect
         inspector = inspect(db.engine)
         tables = inspector.get_table_names()
@@ -278,6 +278,32 @@ with app.app_context():
         import traceback
         traceback.print_exc()
 
+@app.route('/create-tables')
+def create_tables():
+    try:
+        db.create_all()
+        return "✅ Tabelas criadas com sucesso!"
+    except Exception as e:
+        return f"❌ Erro: {str(e)}"
+
+@app.route('/drop-create-tables')
+def drop_create_tables():
+    try:
+        db.drop_all()
+        db.create_all()
+        return "✅ Tabelas recriadas com sucesso!"
+    except Exception as e:
+        return f"❌ Erro: {str(e)}"
+
+@app.before_first_request
+def create_tables_on_start():
+    try:
+        print("🚀 Iniciando criação de tabelas...")
+        db.create_all()
+        print("🎉 Tabelas criadas com sucesso!")
+    except Exception as e:
+        print(f"💥 Erro ao criar tabelas: {e}")
+        
 # Rota para debug
 @app.route('/debug')
 def debug_info():
