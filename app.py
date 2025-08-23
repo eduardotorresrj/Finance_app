@@ -260,6 +260,24 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+# ⚠️ ADICIONE ESTE BLOCO PARA CRIAR AS TABELAS
+with app.app_context():
+    try:
+        print("🔄 Tentando criar tabelas...")
+        db.create_all()
+        print("✅ Tabelas criadas com sucesso!")
+        
+        # Verifica se as tabelas foram criadas
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        print(f"📊 Tabelas existentes: {tables}")
+        
+    except Exception as e:
+        print(f"❌ Erro ao criar tabelas: {e}")
+        import traceback
+        traceback.print_exc()
+
 # Rota para debug
 @app.route('/debug')
 def debug_info():
@@ -271,14 +289,18 @@ def debug_info():
     return info
 
 class User(UserMixin, db.Model):
+    __tablename__ = 'users'  # ⚠️ MUDE PARA 'users'
+    
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=True)
 
 class Transaction(db.Model):
+    __tablename__ = 'transactions'  # ⚠️ Nome explícito
+    
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     type = db.Column(db.String(10))  # 'income' ou 'expense'
     category = db.Column(db.String(50))
     amount = db.Column(db.Float)
@@ -289,8 +311,10 @@ class Transaction(db.Model):
 
 # ======== IA Learning: Perfis e Interações ========
 class AiProfile(db.Model):
+    __tablename__ = 'ai_profiles'
+    
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
     risk_profile = db.Column(db.String(20), default='moderado')  # conservador | moderado | arrojado
     savings_target_pct = db.Column(db.Integer, default=20)  # meta de poupança
     emergency_months_target = db.Column(db.Integer, default=3)
@@ -302,8 +326,10 @@ class AiProfile(db.Model):
     last_updated = db.Column(db.DateTime, default=datetime.utcnow)
 
 class AiInteraction(db.Model):
+     __tablename__ = 'ai_interactions'
+    
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     question = db.Column(db.Text, nullable=False)
     intents_json = db.Column(db.Text, default='[]')
     response = db.Column(db.Text, nullable=False)
@@ -382,6 +408,15 @@ def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
+
+@app.route('/create-tables')
+def create_tables():
+    try:
+        db.drop_all()
+        db.create_all()
+        return "✅ Tabelas recriadas com sucesso!"
+    except Exception as e:
+        return f"❌ Erro: {str(e)}"
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
