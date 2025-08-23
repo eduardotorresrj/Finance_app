@@ -59,18 +59,22 @@ class AiInteraction(db.Model):
 def create_app():
     app = Flask(__name__)
 
-    # Configuração do banco - CORRIGIDA
+    # Configuração do banco - CORRIGIDA para Render
     def get_database_uri():
         database_url = os.environ.get("DATABASE_URL")
         
         if database_url:
-            # Correção para PostgreSQL do Render
-            if database_url.startswith("postgres://"):
+            # Correção ESSENCIAL para PostgreSQL do Render
+            if database_url and database_url.startswith("postgres://"):
                 database_url = database_url.replace("postgres://", "postgresql://", 1)
+            print(f"✅ Usando PostgreSQL: {database_url[:50]}...")  # Log parcial da URL
             return database_url
         
-        # fallback só para ambiente local
-        return "sqlite:///finance.db"
+        # Modo local - usa SQLite na pasta instance
+        os.makedirs("instance", exist_ok=True)
+        local_uri = "sqlite:///instance/finance.db"
+        print(f"✅ Usando SQLite local: {local_uri}")
+        return local_uri
 
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-key")
     app.config["SQLALCHEMY_DATABASE_URI"] = get_database_uri()
@@ -80,9 +84,11 @@ def create_app():
     if app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgresql://"):
         app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
             "connect_args": {
-                "sslmode": "require"
+                "sslmode": "require",
+                "sslrootcert": "/etc/ssl/certs/ca-certificates.crt"
             }
         }
+        print("✅ Configuração SSL para PostgreSQL aplicada")
 
     # Inicializa extensões
     db.init_app(app)
@@ -100,14 +106,27 @@ def create_app():
         try:
             db.create_all()
             print("✅ Tabelas criadas/verificadas com sucesso!")
+            
             # Verifica se consegue conectar
+            from sqlalchemy import text
             db.session.execute(text('SELECT 1'))
             print("✅ Conexão com o banco de dados estabelecida!")
+            
         except Exception as e:
             print(f"❌ Erro ao criar tabelas ou conectar: {e}")
             # Log mais detalhado para debugging
             import traceback
             traceback.print_exc()
+            
+            # Tentativa de fallback para SQLite se PostgreSQL falhar
+            if "DATABASE_URL" in os.environ:
+                print("⚠️  Tentando fallback para SQLite...")
+                try:
+                    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/finance.db"
+                    db.create_all()
+                    print("✅ Fallback para SQLite bem-sucedido!")
+                except Exception as fallback_error:
+                    print(f"❌ Fallback também falhou: {fallback_error}")
 
     return app
 
