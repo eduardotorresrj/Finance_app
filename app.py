@@ -231,30 +231,23 @@ app = Flask(__name__)
 
 # Configuração robusta para Render
 def get_database_uri():
-    # Tenta várias possibilidades de nome de variável
-    database_url = (
-        os.environ.get('DATABASE_URL') or
-        os.environ.get('RENDER_DATABASE_URL') or
-        os.environ.get('POSTGRESQL_URL')
-    )
+    database_url = os.environ.get('DATABASE_URL')
     
     if database_url:
-        # Correção ESSENCIAL para formato do Render
+        # Use pg8000 para evitar problemas com psycopg2 + Python 3.13
         if database_url.startswith('postgres://'):
-            database_url = database_url.replace('postgres://', 'postgresql://', 1)
-        print(f"✅ Usando PostgreSQL: {database_url[:50]}...")
+            database_url = database_url.replace('postgres://', 'postgresql+pg8000://', 1)
+        print(f"✅ Usando PostgreSQL com pg8000")
         return database_url
     
-    # Se não encontrar, ERRO (no Render sempre deve ter)
-    print("❌ DATABASE_URL não encontrada!")
-    return 'sqlite:///instance/finance.db'  # Fallback apenas para debug
+    return 'sqlite:///instance/finance.db'
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'dev-key-fallback'
 app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # SSL para PostgreSQL no Render
-if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql://'):
+if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql'):
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'connect_args': {
             'sslmode': 'require',
