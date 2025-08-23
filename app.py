@@ -63,11 +63,11 @@ def create_app():
     def get_database_uri():
         database_url = os.environ.get("DATABASE_URL")
         if database_url:
-            if database_url.startswith("postgres://"):
-                database_url = database_url.replace("postgres://", "postgresql://", 1)
+            if database_url.startswith("postgres://instance/finance.db"):
+                database_url = database_url.replace("postgres://", "postgresql://instance/finance.db", 1)
             return database_url
         # fallback só para ambiente local
-        return "sqlite:///instance/finance.db"
+        return "sqlite:///finance.db"
 
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-key")
     app.config["SQLALCHEMY_DATABASE_URI"] = get_database_uri()
