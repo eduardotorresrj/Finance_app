@@ -16,24 +16,27 @@ login_manager = LoginManager()
 
 def create_app():
     app = Flask(__name__)
-    
+
     # Configuração do banco
     def get_database_uri():
-        database_url = os.environ.get('DATABASE_URL', '')
+        database_url = os.environ.get("DATABASE_URL")
         if database_url:
-            if database_url.startswith('postgres://'):
-                database_url = database_url.replace('postgres://', 'postgresql://', 1)
+            # Render fornece postgres://, mas SQLAlchemy exige postgresql://
+            if database_url.startswith("postgres://"):
+                database_url = database_url.replace("postgres://", "postgresql://", 1)
             return database_url
-        # força o SQLite dentro da pasta instance (persistência melhor no Render)
-        return 'sqlite:///instance/finance.db'
-    
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key')
-    app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
+        # fallback somente para local
+        return "sqlite:///finance.db"
+
+    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-key")
+    app.config["SQLALCHEMY_DATABASE_URI"] = get_database_uri()
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
     # Inicializa extensões
     db.init_app(app)
     login_manager.init_app(app)
+
+    return app
     
     # Detecta automaticamente se a rota de login está em um blueprint
     try:
