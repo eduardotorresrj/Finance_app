@@ -326,7 +326,7 @@ class AiProfile(db.Model):
     last_updated = db.Column(db.DateTime, default=datetime.utcnow)
 
 class AiInteraction(db.Model):
-     __tablename__ = 'ai_interactions'
+    __tablename__ = 'ai_interactions'
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
