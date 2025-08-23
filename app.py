@@ -10,6 +10,7 @@ import plotly.graph_objs as go
 import plotly.utils
 import os
 
+
 # Inicializa extensões
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -21,11 +22,10 @@ def create_app():
     def get_database_uri():
         database_url = os.environ.get("DATABASE_URL")
         if database_url:
-            # Render fornece postgres://, mas SQLAlchemy exige postgresql://
             if database_url.startswith("postgres://"):
                 database_url = database_url.replace("postgres://", "postgresql://", 1)
             return database_url
-        # fallback somente para local
+        # fallback só para ambiente local
         return "sqlite:///finance.db"
 
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-key")
@@ -36,31 +36,22 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
 
-    return app
-    
-    # Detecta automaticamente se a rota de login está em um blueprint
+    # Define rota de login
     try:
-        from flask import url_for
         with app.app_context():
-            # Testa se existe rota 'auth.login'
-            url_for('auth.login')
-            login_manager.login_view = 'auth.login'
-            print("🔑 login_view definido como 'auth.login'")
+            url_for("auth.login")
+            login_manager.login_view = "auth.login"
     except Exception:
-        # fallback para rota simples 'login'
-        login_manager.login_view = 'login'
-        print("🔑 login_view definido como 'login'")
-    
-    # Configura user_loader
+        login_manager.login_view = "login"
+
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
-    
-    # Cria tabelas
+
+    # Cria tabelas se não existirem
     with app.app_context():
         db.create_all()
-        print("✅ Tabelas criadas com sucesso!")
-    
+
     return app
 
 app = create_app()
