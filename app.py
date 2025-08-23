@@ -59,19 +59,30 @@ class AiInteraction(db.Model):
 def create_app():
     app = Flask(__name__)
 
-    # Configuração do banco
+    # Configuração do banco - CORRIGIDA
     def get_database_uri():
         database_url = os.environ.get("DATABASE_URL")
+        
         if database_url:
-            if database_url.startswith("postgres://instance/finance.db"):
-                database_url = database_url.replace("postgres://", "postgresql://instance/finance.db", 1)
+            # Correção para PostgreSQL do Render
+            if database_url.startswith("postgres://"):
+                database_url = database_url.replace("postgres://", "postgresql://", 1)
             return database_url
+        
         # fallback só para ambiente local
         return "sqlite:///finance.db"
 
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-key")
     app.config["SQLALCHEMY_DATABASE_URI"] = get_database_uri()
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    
+    # Configuração adicional para PostgreSQL no Render
+    if app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgresql://"):
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+            "connect_args": {
+                "sslmode": "require"
+            }
+        }
 
     # Inicializa extensões
     db.init_app(app)
@@ -89,14 +100,24 @@ def create_app():
         try:
             db.create_all()
             print("✅ Tabelas criadas/verificadas com sucesso!")
+            # Verifica se consegue conectar
+            db.session.execute(text('SELECT 1'))
+            print("✅ Conexão com o banco de dados estabelecida!")
         except Exception as e:
-            print(f"❌ Erro ao criar tabelas: {e}")
-            # Não levante exceção aqui para que o app possa iniciar
+            print(f"❌ Erro ao criar tabelas ou conectar: {e}")
+            # Log mais detalhado para debugging
+            import traceback
+            traceback.print_exc()
 
     return app
 
-app = create_app()
-
+# Cria o app apenas se este arquivo for executado diretamente
+if __name__ == '__main__':
+    app = create_app()
+    app.run(debug=True)
+else:
+    # Para deployment, cria o app quando importado
+    app = create_app()
 def format_currency(value):
     """Formata valor monetário com vírgulas como separadores de milhares"""
     if value is None:
